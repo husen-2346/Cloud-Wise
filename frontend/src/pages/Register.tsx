@@ -10,33 +10,57 @@ import {
 
 interface RegisterProps {
   onLogin: () => void;
+  onRegisterSuccess: (account: {
+    name: string;
+    email: string;
+    password: string;
+  }) => string | null;
 }
 
-export default function Register({ onLogin }: RegisterProps) {
+export default function Register({ onLogin, onRegisterSuccess }: RegisterProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError('');
+  
+function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
+  setError('');
 
-    const formData = new FormData(event.currentTarget);
-    const password = formData.get('password') as string;
-    const confirmPassword = formData.get('confirmPassword') as string;
+  const formData = new FormData(event.currentTarget);
+  const fullName = String(formData.get('fullName') ?? '').trim();
+  const email = String(formData.get('email') ?? '').trim();
+  const password = String(formData.get('password') ?? '');
+  const confirmPassword = String(
+    formData.get('confirmPassword') ?? '',
+  );
 
-    if (password.length < 8) {
-      setError('Password must contain at least 8 characters.');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-
-    alert('Registration API will be connected later.');
+  if (fullName.length < 2) {
+    setError('Please enter your full name.');
+    return;
   }
+
+  if (password.length < 8) {
+    setError('Password must contain at least 8 characters.');
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    setError('Passwords do not match.');
+    return;
+  }
+
+  const result = onRegisterSuccess({
+    name: fullName,
+    email,
+    password,
+  });
+
+  if (result) {
+    setError(result);
+  }
+}
+
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#0b1116] px-5 py-10 text-[#e8eef0]">

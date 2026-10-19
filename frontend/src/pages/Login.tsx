@@ -7,17 +7,31 @@ import {
   Mail,
 } from 'lucide-react';
 
+
 interface LoginProps {
   onRegister: () => void;
+  onLogin: (email: string, password: string) => string | null;
 }
 
-export default function Login({ onRegister }: LoginProps) {
+export default function Login({ onRegister, onLogin }: LoginProps) {
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    alert('Authentication will be connected later.');
+    setError('');
+
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get('email') ?? '');
+    const password = String(formData.get('password') ?? '');
+
+    const result = onLogin(email, password);
+
+    if (result) {
+      setError(result);
+    }
   }
+
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#0b1116] px-5 py-10 text-[#e8eef0]">
@@ -137,7 +151,11 @@ export default function Login({ onRegister }: LoginProps) {
                 </button>
               </div>
             </div>
-
+            {error && (
+              <p role="alert" className="text-sm text-red-400">
+                {error}
+              </p>
+            )}
             {/* Submit */}
             <button
               type="submit"
