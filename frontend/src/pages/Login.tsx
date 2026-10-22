@@ -10,14 +10,14 @@ import {
 
 interface LoginProps {
   onRegister: () => void;
-  onLogin: (email: string, password: string) => string | null;
+  onLogin: (email: string, password: string) => Promise<string | null>;
 }
 
 export default function Login({ onRegister, onLogin }: LoginProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
 
@@ -25,7 +25,7 @@ export default function Login({ onRegister, onLogin }: LoginProps) {
     const email = String(formData.get('email') ?? '');
     const password = String(formData.get('password') ?? '');
 
-    const result = onLogin(email, password);
+    const result = await onLogin(email, password);
 
     if (result) {
       setError(result);

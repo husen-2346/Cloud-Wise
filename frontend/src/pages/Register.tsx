@@ -14,7 +14,7 @@ interface RegisterProps {
     name: string;
     email: string;
     password: string;
-  }) => string | null;
+  }) => Promise<string | null>;
 }
 
 export default function Register({ onLogin, onRegisterSuccess }: RegisterProps) {
@@ -22,44 +22,44 @@ export default function Register({ onLogin, onRegisterSuccess }: RegisterProps) 
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
 
-  
-function handleSubmit(event: FormEvent<HTMLFormElement>) {
-  event.preventDefault();
-  setError('');
 
-  const formData = new FormData(event.currentTarget);
-  const fullName = String(formData.get('fullName') ?? '').trim();
-  const email = String(formData.get('email') ?? '').trim();
-  const password = String(formData.get('password') ?? '');
-  const confirmPassword = String(
-    formData.get('confirmPassword') ?? '',
-  );
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError('');
 
-  if (fullName.length < 2) {
-    setError('Please enter your full name.');
-    return;
+    const formData = new FormData(event.currentTarget);
+    const fullName = String(formData.get('fullName') ?? '').trim();
+    const email = String(formData.get('email') ?? '').trim();
+    const password = String(formData.get('password') ?? '');
+    const confirmPassword = String(
+      formData.get('confirmPassword') ?? '',
+    );
+
+    if (fullName.length < 2) {
+      setError('Please enter your full name.');
+      return;
+    }
+
+    if (password.length < 8) {
+      setError('Password must contain at least 8 characters.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    const result = await onRegisterSuccess({
+      name: fullName,
+      email,
+      password,
+    });
+
+    if (result) {
+      setError(result);
+    }
   }
-
-  if (password.length < 8) {
-    setError('Password must contain at least 8 characters.');
-    return;
-  }
-
-  if (password !== confirmPassword) {
-    setError('Passwords do not match.');
-    return;
-  }
-
-  const result = onRegisterSuccess({
-    name: fullName,
-    email,
-    password,
-  });
-
-  if (result) {
-    setError(result);
-  }
-}
 
 
   return (
