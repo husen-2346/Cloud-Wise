@@ -67,6 +67,8 @@ type AnalysisRecord = {
   savings: number;
   status: 'Completed' | 'In Progress';
   findings: Finding[];
+  aiExplanation?: string;
+  aiError?: string;
 };
 
 const providers: { id: ProviderId; name: string; description: string; logo: string }[] = [
@@ -230,6 +232,120 @@ function SeverityPill({ severity }: { severity: Severity }) {
   );
 }
 
+
+function renderInlineMarkdown(text: string) {
+  const parts = text.split(/(\*\*.*?\*\*|`[^`]+`)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={index} className="font-semibold text-[#e8eef0]">{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return <code key={index} className="rounded bg-black/20 px-1.5 py-0.5 font-mono text-[0.9em] text-[#c9f8dc]">{part.slice(1, -1)}</code>;
+    }
+    return <span key={index}>{part}</span>;
+  });
+}
+
+function MarkdownContent({ content }: { content: string }) {
+  const lines = content.replace(/\r/g, '').split('\n');
+  const blocks: Array<{ type: 'heading' | 'paragraph' | 'list' | 'table'; level?: number; text?: string; items?: string[]; rows?: string[][] }> = [];
+
+  const splitTableRow = (line: string) =>
+    line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((cell) => cell.trim());
+  const isTableSeparator = (line: string) => {
+    const cells = splitTableRow(line);
+    return cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(cell.replace(/\s/g, '')));
+  };
+
+  let index = 0;
+  while (index < lines.length) {
+    const line = lines[index].trim();
+    if (!line) {
+      index += 1;
+      continue;
+    }
+
+    const heading = line.match(/^(#{1,3})\s+(.+)$/);
+    if (heading) {
+      blocks.push({ type: 'heading', level: heading[1].length, text: heading[2].replace(/\*\*/g, '') });
+      index += 1;
+      continue;
+    }
+
+    if (line.includes('|') && index + 1 < lines.length && isTableSeparator(lines[index + 1].trim())) {
+      const rows = [splitTableRow(line)];
+      index += 2;
+      while (index < lines.length && lines[index].trim().includes('|') && lines[index].trim()) {
+        rows.push(splitTableRow(lines[index].trim()));
+        index += 1;
+      }
+      blocks.push({ type: 'table', rows });
+      continue;
+    }
+
+    if (/^[-*]\s+/.test(line) || /^\d+[.)]\s+/.test(line)) {
+      const items: string[] = [];
+      while (index < lines.length && (/^\s*[-*]\s+/.test(lines[index]) || /^\s*\d+[.)]\s+/.test(lines[index]))) {
+        items.push(lines[index].trim().replace(/^[-*]\s+/, '').replace(/^\d+[.)]\s+/, ''));
+        index += 1;
+      }
+      blocks.push({ type: 'list', items });
+      continue;
+    }
+
+    const paragraph = [line];
+    index += 1;
+    while (index < lines.length && lines[index].trim() && !/^(#{1,3})\s+/.test(lines[index].trim()) && !/^[-*]\s+/.test(lines[index].trim()) && !/^\d+[.)]\s+/.test(lines[index].trim())) {
+      if (lines[index].includes('|') && index + 1 < lines.length && isTableSeparator(lines[index + 1].trim())) break;
+      paragraph.push(lines[index].trim());
+      index += 1;
+    }
+    blocks.push({ type: 'paragraph', text: paragraph.join(' ') });
+  }
+
+  return (
+    <div className="mt-4 space-y-4 text-sm leading-6 text-[#aab6bf]">
+      {blocks.map((block, blockIndex) => {
+        if (block.type === 'heading') {
+          const headingClass = block.level === 1
+            ? 'text-lg font-semibold text-white'
+            : block.level === 2
+              ? 'text-base font-semibold text-[#e8eef0]'
+              : 'text-sm font-semibold text-[#c9f8dc]';
+          return <h3 key={blockIndex} className={headingClass}>{renderInlineMarkdown(block.text ?? '')}</h3>;
+        }
+        if (block.type === 'list') {
+          return (
+            <ul key={blockIndex} className="list-disc space-y-1 pl-5 marker:text-[#a7f3c0]">
+              {(block.items ?? []).map((item, itemIndex) => <li key={itemIndex}>{renderInlineMarkdown(item)}</li>)}
+            </ul>
+          );
+        }
+        if (block.type === 'table') {
+          const rows = block.rows ?? [];
+          return (
+            <div key={blockIndex} className="overflow-x-auto rounded-lg border border-white/[0.08]">
+              <table className="w-full min-w-[480px] border-collapse text-left text-xs leading-5">
+                <thead className="bg-white/[0.04] text-[#e8eef0]">
+                  <tr>{(rows[0] ?? []).map((cell, cellIndex) => <th key={cellIndex} className="border-b border-white/[0.08] px-3 py-2 font-semibold">{renderInlineMarkdown(cell)}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {rows.slice(1).map((row, rowIndex) => (
+                    <tr key={rowIndex} className="align-top even:bg-white/[0.02]">
+                      {(rows[0] ?? []).map((_, cellIndex) => <td key={cellIndex} className="border-b border-white/[0.05] px-3 py-2">{renderInlineMarkdown(row[cellIndex] ?? '')}</td>)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        }
+        return <p key={blockIndex}>{renderInlineMarkdown(block.text ?? '')}</p>;
+      })}
+    </div>
+  );
+}
+
 export default function ConnectionDashboard({ userName, token, onLogout }: ConnectionDashboardProps) {
   const [activeNav, setActiveNav] = useState<Page>('Home');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -376,6 +492,62 @@ export default function ConnectionDashboard({ userName, token, onLogout }: Conne
       setProgress(75);
       setStage(4);
 
+      // Explain the live AWS inventory using the authenticated backend endpoint.
+      // If the AI provider is unavailable, still save the inventory analysis.
+      let aiExplanation = '';
+      let aiError = '';
+
+      try {
+        const aiResponse = await fetch('/api/ai/explain', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            context: JSON.stringify({
+              region,
+              ec2Instances: instances,
+              ebsVolumes: volumes,
+              findings: findings.map((finding) => ({
+                title: finding.title,
+                resourceId: finding.resourceId,
+                severity: finding.severity,
+                description: finding.description,
+                recommendation: finding.recommendation,
+              })),
+              constraints: [
+                'Use only the supplied inventory and findings as evidence.',
+                'No billing data is available.',
+                'No CPU, memory, or storage utilization metrics are available.',
+                'Do not invent costs or savings estimates.',
+                'Distinguish confirmed facts from potential optimization opportunities.',
+              ],
+            }),
+          }),
+        });
+
+        if (!aiResponse.ok) {
+          const errorBody = await aiResponse.json().catch(() => null);
+          throw new Error(
+            errorBody?.message ||
+              errorBody?.error ||
+              `AI explanation failed (HTTP ${aiResponse.status}).`,
+          );
+        }
+
+        const aiData: { explanation?: string } = await aiResponse.json();
+        aiExplanation = aiData.explanation?.trim() ?? '';
+
+        if (!aiExplanation) {
+          throw new Error('The AI service returned an empty explanation.');
+        }
+      } catch (error) {
+        aiError = error instanceof Error
+          ? error.message
+          : 'AI explanation is temporarily unavailable.';
+      }
+
       const next: AnalysisRecord = {
         id: `aws-${Date.now()}`,
         name: 'AWS Resource Analysis',
@@ -387,6 +559,8 @@ export default function ConnectionDashboard({ userName, token, onLogout }: Conne
         savings: 0,
         status: 'Completed',
         findings,
+        aiExplanation,
+        aiError,
       };
 
       setRecords((previous) => [next, ...previous]);
@@ -1064,17 +1238,30 @@ export default function ConnectionDashboard({ userName, token, onLogout }: Conne
                                 <Sparkles size={17} className="text-[#a7f3d0]" />
                                 Executive summary
                               </div>
-                              <p className="mt-3 text-sm leading-6 text-[#aab6bf]">
-                                This sample report contains {selectedRecord.issues} illustrative
-                                findings across {selectedRecord.resources} example resources, with
-                                estimated opportunities of {money(selectedRecord.savings)} per
-                                month. The largest listed opportunity is{' '}
-                                {selectedRecord.findings[0]?.title ?? 'resource optimization'}.
-                              </p>
+                              {selectedRecord.aiExplanation ? (
+                                <MarkdownContent content={selectedRecord.aiExplanation} />
+                              ) : selectedRecord.aiError ? (
+                                <p className="mt-3 text-sm leading-6 text-amber-100/80">
+                                  AI explanation is currently unavailable: {selectedRecord.aiError}
+                                </p>
+                              ) : selectedRecord.id.startsWith('aws-') ? (
+                                <p className="mt-3 text-sm leading-6 text-[#aab6bf]">
+                                  No AI explanation is saved for this report. Run a new AWS analysis
+                                  to request an explanation of the live inventory.
+                                </p>
+                              ) : (
+                                <p className="mt-3 text-sm leading-6 text-[#aab6bf]">
+                                  This sample report contains {selectedRecord.issues} illustrative
+                                  findings across {selectedRecord.resources} example resources, with
+                                  estimated opportunities of {money(selectedRecord.savings)} per
+                                  month. The largest listed opportunity is{' '}
+                                  {selectedRecord.findings[0]?.title ?? 'resource optimization'}.
+                                </p>
+                              )}
                               <div className="mt-4 rounded-lg border border-amber-300/10 bg-amber-300/[0.04] p-3 text-xs leading-5 text-amber-100/80">
-                                Demo notice: this report is seeded sample content. Live AWS billing,
-                                utilization metrics, and AI-generated explanations are not connected
-                                yet.
+                                {selectedRecord.id.startsWith('aws-')
+                                  ? 'This explanation is based on live AWS inventory and rule-based findings. Billing and utilization metrics are not available, so verified savings have not been calculated.'
+                                  : 'Demo notice: this report contains seeded sample content. Its findings and savings are illustrative, not live cloud analysis.'}
                               </div>
                             </div>
                           )}
