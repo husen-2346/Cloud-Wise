@@ -110,7 +110,7 @@ public class GeminiService {
         Map<String, Object> requestBody = Map.of(
                 "model", "openrouter/free",
                 "temperature", 0.2,
-                "max_tokens", 2200,
+                "max_tokens", 3500,
                 "messages", List.of(
                         Map.of(
                                 "role", "system",
