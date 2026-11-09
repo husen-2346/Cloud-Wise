@@ -15,13 +15,15 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('login');
   const [userName, setUserName] = useState('');
   const [token, setToken] = useState<string | null>(null);
-  const [isCheckingSession, setIsCheckingSession] = useState(true);
+
+  const [isCheckingSession, setIsCheckingSession] = useState(
+    () => Boolean(sessionStorage.getItem('cloudwise_token')),
+  );
 
   useEffect(() => {
     const savedToken = sessionStorage.getItem('cloudwise_token');
 
     if (!savedToken) {
-      setIsCheckingSession(false);
       return;
     }
 
@@ -30,7 +32,7 @@ export default function App() {
         setToken(savedToken);
         setUserName(
           sessionStorage.getItem('cloudwise_user_name') ||
-          user.email.split('@')[0],
+            user.email.split('@')[0],
         );
         setCurrentPage('dashboard');
       })
@@ -47,12 +49,12 @@ export default function App() {
   }, []);
 
   if (isCheckingSession) {
-  return (
-    <div className="min-h-screen bg-[#0b1116] flex items-center justify-center text-white">
-      Checking session...
-    </div>
-  );
-}
+    return (
+      <div className="min-h-screen bg-[#0b1116] flex items-center justify-center text-white">
+        Checking session...
+      </div>
+    );
+  }
 
   async function handleRegisterSuccess(account: {
     name: string;
@@ -130,13 +132,19 @@ export default function App() {
   }
 
   if (!token) {
-    return <Login onRegister={() => setCurrentPage('register')} onLogin={handleLogin} />;
+    return (
+      <Login
+        onRegister={() => setCurrentPage('register')}
+        onLogin={handleLogin}
+      />
+    );
   }
+
   return (
-  <ConnectionDashboard
-    userName={userName || 'User'}
-    token={token}
-    onLogout={handleLogout}
-  />
-);
+    <ConnectionDashboard
+      userName={userName || 'User'}
+      token={token}
+      onLogout={handleLogout}
+    />
+  );
 }
