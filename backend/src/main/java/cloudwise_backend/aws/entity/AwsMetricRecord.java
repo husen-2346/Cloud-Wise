@@ -7,20 +7,15 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(
-    name = "aws_metric_records",
-    uniqueConstraints = {
-        @UniqueConstraint(
-            name = "uk_connection_resource_metric_time",
-            columnNames = {
+@Table(name = "aws_metric_records", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_connection_resource_metric_time", columnNames = {
                 "connection_id",
                 "resource_id",
                 "metric_name",
+                "statistic",
                 "timestamp"
-            }
-        )
-    }
-)
+        })
+})
 public class AwsMetricRecord {
 
     @Id
