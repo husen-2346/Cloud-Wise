@@ -285,3 +285,14 @@ Next:
 - Implement reusable temporary credential provider.
 - Integrate customer credentials with EC2, EBS and CloudWatch.
 - Integrate Cost Explorer using customer credentials.
+
+### CloudWatch Integration — COMPLETED
+
+- Integrated AWS CloudWatch using AWS SDK for Java 2.x.
+- Implemented customer-specific CloudWatch access using temporary STS credentials.
+- Added CPUUtilization metric retrieval using GetMetricStatistics.
+- Configured five-minute aggregation with Average and Maximum statistics.
+- Added authenticated endpoint:
+  GET /api/aws/connections/{connectionId}/cloudwatch/cpu
+- Runtime tested successfully against customer AWS account 024899754500.
+- Verified timestamped CPU utilization records returned successfully.
