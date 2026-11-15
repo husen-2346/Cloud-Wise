@@ -229,3 +229,59 @@ CloudWise is a unified platform for monitoring, analyzing, forecasting and optim
 
 Status: Implemented and runtime verified.
 
+### EC2 Inventory — Runtime Verified
+
+- Implemented Ec2InstanceResponse DTO.
+- Implemented Ec2DiscoveryService using AWS SDK EC2 DescribeInstances.
+- Added authenticated GET `/api/aws/instances` endpoint.
+- Extracted instance ID, type, state, Name tag, availability zone,
+  public IP, private IP, and launch time.
+- Successfully retrieved the actual EC2 instance from AWS account
+  748076390893.
+
+Status: Implemented and runtime verified.
+
+### CloudWatch CPU Monitoring — Runtime Verified
+
+- Created CloudWatchMetricResponse DTO.
+- Implemented CloudWatchService using AWS SDK GetMetricStatistics.
+- Added authenticated GET `/api/aws/cloudwatch/cpu` endpoint.
+- Retrieved actual EC2 CPUUtilization metrics from AWS CloudWatch.
+- Verified 193 datapoints at five-minute intervals.
+- Retrieved average and maximum CPU utilization values.
+
+Status: Implemented and runtime verified.
+
+### AWS Cross-Account Connection — Completed
+
+- Configured CloudWise platform IAM identity.
+- Created customer-side CloudWiseCustomerRole.
+- Configured External ID-based trust relationship.
+- Verified cross-account STS AssumeRole using AWS CLI.
+- Implemented platform STS client in Spring Boot.
+- Implemented CustomerAwsConnectionRequest and Response DTOs.
+- Implemented CustomerAwsConnectionService.
+- Implemented POST /api/aws/connect.
+- Verified customer AWS identity through Postman.
+- Confirmed temporary credentials are not exposed in API responses.
+
+Next: Persist AWS connections per authenticated CloudWise user and enable reusable customer credentials.
+
+### Multi-Account AWS Connection — Completed
+
+- Created customer-side IAM role with read-only permissions.
+- Configured cross-account trust using External ID.
+- Implemented platform STS client.
+- Implemented cryptographically secure External ID generation.
+- Created AwsConnection JPA entity and repository.
+- Linked AWS connections to authenticated CloudWise users.
+- Implemented connection initiation endpoint.
+- Implemented connection verification endpoint.
+- Verified cross-account role assumption through Spring Boot.
+- Confirmed customer AWS identity using STS.
+- Successfully persisted CONNECTED status in PostgreSQL.
+
+Next:
+- Implement reusable temporary credential provider.
+- Integrate customer credentials with EC2, EBS and CloudWatch.
+- Integrate Cost Explorer using customer credentials.

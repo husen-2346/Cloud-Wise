@@ -21,6 +21,9 @@ public class AwsConfig {
     @Value("${cloudwise.aws.region:ap-south-1}")
     private String awsRegion;
 
+    @Value("${cloudwise.aws.platform-profile:cloudwise-dev}")
+    private String platformAwsProfile;
+
     private ProfileCredentialsProvider credentialsProvider() {
         return ProfileCredentialsProvider.builder()
                 .profileName(awsProfile)
@@ -59,4 +62,16 @@ public class AwsConfig {
                 .credentialsProvider(credentialsProvider())
                 .build();
     }
+
+    @Bean
+public StsClient platformStsClient() {
+    return StsClient.builder()
+            .region(Region.of(awsRegion))
+            .credentialsProvider(
+                    ProfileCredentialsProvider.builder()
+                            .profileName(platformAwsProfile)
+                            .build()
+            )
+            .build();
+}
 }
