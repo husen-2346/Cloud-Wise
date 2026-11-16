@@ -29,223 +29,205 @@ import java.util.List;
 @Service
 public class AwsDataPersistenceService {
 
-    private final UserRepository userRepository;
-    private final AwsConnectionRepository connectionRepository;
-    private final AwsResourceRepository resourceRepository;
-    private final AwsCostRecordRepository costRepository;
-    private final AwsMetricRecordRepository metricRepository;
+        private final UserRepository userRepository;
+        private final AwsConnectionRepository connectionRepository;
+        private final AwsResourceRepository resourceRepository;
+        private final AwsCostRecordRepository costRepository;
+        private final AwsMetricRecordRepository metricRepository;
 
-    public AwsDataPersistenceService(
-            UserRepository userRepository,
-            AwsConnectionRepository connectionRepository,
-            AwsResourceRepository resourceRepository,
-            AwsCostRecordRepository costRepository,
-            AwsMetricRecordRepository metricRepository) {
+        public AwsDataPersistenceService(
+                        UserRepository userRepository,
+                        AwsConnectionRepository connectionRepository,
+                        AwsResourceRepository resourceRepository,
+                        AwsCostRecordRepository costRepository,
+                        AwsMetricRecordRepository metricRepository) {
 
-        this.userRepository = userRepository;
-        this.connectionRepository = connectionRepository;
-        this.resourceRepository = resourceRepository;
-        this.costRepository = costRepository;
-        this.metricRepository = metricRepository;
-    }
-
-    private AwsConnection getConnection(
-            Long connectionId,
-            String userEmail) {
-
-        User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("User not found"));
-
-        return connectionRepository
-                .findByIdAndUserId(connectionId, user.getId())
-                .filter(connection ->
-                        "CONNECTED".equals(connection.getStatus()))
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "Connected AWS account not found"));
-    }
-
-    @Transactional
-    public void saveEc2Instances(
-            Long connectionId,
-            String userEmail,
-            List<Ec2InstanceResponse> instances,
-            String region) {
-
-        AwsConnection connection =
-                getConnection(connectionId, userEmail);
-
-        for (Ec2InstanceResponse instance : instances) {
-
-            AwsResource resource = findOrCreateResource(
-                    connection,
-                    instance.instanceId(),
-                    "EC2",
-                    region
-            );
-
-            resource.setResourceName(instance.name());
-            resource.setState(instance.state());
-            resource.setAvailabilityZone(instance.availabilityZone());
-
-            resourceRepository.save(resource);
+                this.userRepository = userRepository;
+                this.connectionRepository = connectionRepository;
+                this.resourceRepository = resourceRepository;
+                this.costRepository = costRepository;
+                this.metricRepository = metricRepository;
         }
-    }
 
-    @Transactional
-    public void saveEbsVolumes(
-            Long connectionId,
-            String userEmail,
-            List<EbsVolumeResponse> volumes,
-            String region) {
+        private AwsConnection getConnection(
+                        Long connectionId,
+                        String userEmail) {
 
-        AwsConnection connection =
-                getConnection(connectionId, userEmail);
+                User user = userRepository.findByEmail(userEmail)
+                                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        for (EbsVolumeResponse volume : volumes) {
-
-            AwsResource resource = findOrCreateResource(
-                    connection,
-                    volume.volumeId(),
-                    "EBS",
-                    region
-            );
-
-            resource.setResourceName(volume.volumeId());
-            resource.setState(volume.state());
-            resource.setAvailabilityZone(volume.availabilityZone());
-
-            resourceRepository.save(resource);
+                return connectionRepository
+                                .findByIdAndUserId(connectionId, user.getId())
+                                .filter(connection -> "CONNECTED".equals(connection.getStatus()))
+                                .orElseThrow(() -> new IllegalArgumentException(
+                                                "Connected AWS account not found"));
         }
-    }
 
-    @Transactional
-    public void saveCosts(
-            Long connectionId,
-            String userEmail,
-            List<CostExplorerResponse> costs) {
+        @Transactional
+        public void saveEc2Instances(
+                        Long connectionId,
+                        String userEmail,
+                        List<Ec2InstanceResponse> instances,
+                        String region) {
 
-        AwsConnection connection =
-                getConnection(connectionId, userEmail);
+                AwsConnection connection = getConnection(connectionId, userEmail);
 
-        for (CostExplorerResponse cost : costs) {
+                for (Ec2InstanceResponse instance : instances) {
 
-            String region = "GLOBAL";
+                        AwsResource resource = findOrCreateResource(
+                                        connection,
+                                        instance.instanceId(),
+                                        "EC2",
+                                        region);
 
-            AwsCostRecord record = costRepository
-                    .findByConnectionIdAndServiceAndCostDateAndRegion(
-                            connectionId,
-                            cost.service(),
-                            cost.date(),
-                            region
-                    )
-                    .orElseGet(() -> {
-                        AwsCostRecord newRecord = new AwsCostRecord();
-                        newRecord.setConnection(connection);
-                        newRecord.setCostDate(cost.date());
-                        newRecord.setService(cost.service());
-                        newRecord.setRegion(region);
-                        return newRecord;
-                    });
+                        resource.setResourceName(instance.name());
+                        resource.setState(instance.state());
+                        resource.setAvailabilityZone(instance.availabilityZone());
 
-            record.setAmount(cost.amount());
-            record.setCurrency(cost.unit());
-
-            costRepository.save(record);
+                        resourceRepository.save(resource);
+                }
         }
-    }
 
-    @Transactional
-    public void saveCloudWatchMetrics(
-            Long connectionId,
-            String userEmail,
-            List<CloudWatchMetricResponse> metrics,
-            String region) {
+        @Transactional
+        public void saveEbsVolumes(
+                        Long connectionId,
+                        String userEmail,
+                        List<EbsVolumeResponse> volumes,
+                        String region) {
 
-        AwsConnection connection =
-                getConnection(connectionId, userEmail);
+                AwsConnection connection = getConnection(connectionId, userEmail);
 
-        for (CloudWatchMetricResponse metric : metrics) {
+                for (EbsVolumeResponse volume : volumes) {
 
-            if (metric.average() != null) {
-                saveMetric(
-                        connection,
-                        metric,
-                        "AVERAGE",
-                        metric.average(),
-                        region
-                );
-            }
+                        AwsResource resource = findOrCreateResource(
+                                        connection,
+                                        volume.volumeId(),
+                                        "EBS",
+                                        region);
 
-            if (metric.maximum() != null) {
-                saveMetric(
-                        connection,
-                        metric,
-                        "MAXIMUM",
-                        metric.maximum(),
-                        region
-                );
-            }
+                        resource.setResourceName(volume.volumeId());
+                        resource.setState(volume.state());
+                        resource.setAvailabilityZone(volume.availabilityZone());
+
+                        resourceRepository.save(resource);
+                }
         }
-    }
 
-    private void saveMetric(
-            AwsConnection connection,
-            CloudWatchMetricResponse metric,
-            String statistic,
-            Double value,
-            String region) {
+        @Transactional
+        public void saveCosts(
+                        Long connectionId,
+                        String userEmail,
+                        List<CostExplorerResponse> costs) {
 
-        AwsMetricRecord record = metricRepository
-                .findAllByConnectionIdAndResourceIdAndMetricNameAndTimestampBetween(
-                        connection.getId(),
-                        metric.instanceId(),
-                        metric.metricName(),
-                        metric.timestamp(),
-                        metric.timestamp()
-                )
-                .stream()
-                .filter(existing ->
-                        statistic.equals(existing.getStatistic()))
-                .findFirst()
-                .orElseGet(() -> {
-                    AwsMetricRecord newRecord = new AwsMetricRecord();
-                    newRecord.setConnection(connection);
-                    newRecord.setResourceId(metric.instanceId());
-                    newRecord.setMetricName(metric.metricName());
-                    newRecord.setStatistic(statistic);
-                    newRecord.setTimestamp(metric.timestamp());
-                    newRecord.setRegion(region);
-                    return newRecord;
-                });
+                AwsConnection connection = getConnection(connectionId, userEmail);
 
-        record.setValue(value);
-        record.setUnit(metric.unit());
+                for (CostExplorerResponse cost : costs) {
 
-        metricRepository.save(record);
-    }
+                        String region = "GLOBAL";
 
-    private AwsResource findOrCreateResource(
-            AwsConnection connection,
-            String resourceId,
-            String resourceType,
-            String region) {
+                        AwsCostRecord record = costRepository
+                                        .findByConnectionIdAndServiceAndCostDateAndRegion(
+                                                        connectionId,
+                                                        cost.service(),
+                                                        cost.date(),
+                                                        region)
+                                        .orElseGet(() -> {
+                                                AwsCostRecord newRecord = new AwsCostRecord();
+                                                newRecord.setConnection(connection);
+                                                newRecord.setCostDate(cost.date());
+                                                newRecord.setService(cost.service());
+                                                newRecord.setRegion(region);
+                                                return newRecord;
+                                        });
 
-        return resourceRepository
-                .findByConnectionIdAndResourceIdAndResourceTypeAndRegion(
-                        connection.getId(),
-                        resourceId,
-                        resourceType,
-                        region
-                )
-                .orElseGet(() -> {
-                    AwsResource resource = new AwsResource();
-                    resource.setConnection(connection);
-                    resource.setResourceId(resourceId);
-                    resource.setResourceType(resourceType);
-                    resource.setRegion(region);
-                    return resource;
-                });
-    }
+                        record.setAmount(cost.amount());
+                        record.setCurrency(cost.unit());
+
+                        costRepository.save(record);
+                }
+        }
+
+        @Transactional
+        public void saveCloudWatchMetrics(
+                        Long connectionId,
+                        String userEmail,
+                        List<CloudWatchMetricResponse> metrics,
+                        String region) {
+
+                AwsConnection connection = getConnection(connectionId, userEmail);
+
+                for (CloudWatchMetricResponse metric : metrics) {
+
+                        if (metric.average() != null) {
+                                saveMetric(
+                                                connection,
+                                                metric,
+                                                "AVERAGE",
+                                                metric.average(),
+                                                region);
+                        }
+
+                        if (metric.maximum() != null) {
+                                saveMetric(
+                                                connection,
+                                                metric,
+                                                "MAXIMUM",
+                                                metric.maximum(),
+                                                region);
+                        }
+                }
+        }
+
+        private void saveMetric(
+                        AwsConnection connection,
+                        CloudWatchMetricResponse metric,
+                        String statistic,
+                        Double value,
+                        String region) {
+
+                AwsMetricRecord record = metricRepository
+                                .findByConnectionIdAndResourceIdAndMetricNameAndStatisticAndTimestamp(
+                                                connection.getId(),
+                                                metric.instanceId(),
+                                                metric.metricName(),
+                                                statistic,
+                                                metric.timestamp())
+                                .orElseGet(() -> {
+                                        AwsMetricRecord newRecord = new AwsMetricRecord();
+                                        newRecord.setConnection(connection);
+                                        newRecord.setResourceId(metric.instanceId());
+                                        newRecord.setMetricName(metric.metricName());
+                                        newRecord.setStatistic(statistic);
+                                        newRecord.setTimestamp(metric.timestamp());
+                                        newRecord.setRegion(region);
+                                        return newRecord;
+                                });
+                record.setValue(value);
+                record.setUnit(metric.unit());
+
+                metricRepository.save(record);
+        }
+
+        private AwsResource findOrCreateResource(
+                        AwsConnection connection,
+                        String resourceId,
+                        String resourceType,
+                        String region) {
+
+                return resourceRepository
+                                .findByConnectionIdAndResourceIdAndResourceTypeAndRegion(
+                                                connection.getId(),
+                                                resourceId,
+                                                resourceType,
+                                                region)
+                                .orElseGet(() -> {
+                                        AwsResource resource = new AwsResource();
+                                        resource.setConnection(connection);
+                                        resource.setResourceId(resourceId);
+                                        resource.setResourceType(resourceType);
+                                        resource.setRegion(region);
+                                        return resource;
+                                });
+        }
+
 }
