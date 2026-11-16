@@ -296,3 +296,15 @@ Next:
   GET /api/aws/connections/{connectionId}/cloudwatch/cpu
 - Runtime tested successfully against customer AWS account 024899754500.
 - Verified timestamped CPU utilization records returned successfully.
+
+### AWS Resource Discovery and Persistence — COMPLETED
+
+- Implemented EC2 instance discovery using AWS SDK for Java 2.x.
+- Implemented EBS volume discovery using AWS SDK for Java 2.x.
+- Added PostgreSQL entities and repositories for AWS resources.
+- Implemented resource upsert logic using connection ID, resource ID, resource type, and region.
+- Added authenticated resource synchronization endpoint:
+  POST /api/aws/connections/{connectionId}/sync/resources
+- Runtime tested against customer AWS account 024899754500.
+- Verified one EC2 instance and one EBS volume persisted in PostgreSQL.
+- Repeated synchronization and confirmed no duplicate records were created.
