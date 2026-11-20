@@ -1,17 +1,58 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,500;0,8..60,600;1,8..60,500;1,8..60,600&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", sans-serif;
-  --font-serif: "Source Serif 4", serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Source Serif 4", Georgia, Cambria, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Brand and Core Colors */
+  --color-ink: #0B1F3A;
+  --color-body: #33455C;
+  --color-muted: #5B6B82;
+  --color-line: #DCE6F2;
+  --color-app: #F4F8FD;
+  --color-surface: #FFFFFF;
+  --color-tint: #EAF3FF;
+
+  --color-brand-300: #5CC4FF;
+  --color-brand-400: #1AB0FF;
+  --color-brand-500: #0A8BFF;
+  --color-brand-600: #0068E8;
+
+  /* Semantic Colors */
+  --color-success: #16A34A;
+  --color-success-bg: #E8F7EE;
+  --color-warning: #B45309;
+  --color-warning-bg: #FEF3DC;
+  --color-danger: #DC2626;
+  --color-danger-bg: #FDEBEC;
+  --color-neutral: #5B6B82;
+  --color-neutral-bg: #EEF2F7;
+
+  /* Chart Palette */
+  --color-chart-1: #0A8BFF;
+  --color-chart-2: #22C3EE;
+  --color-chart-3: #6C7BFF;
+  --color-chart-4: #14B8A6;
+  --color-chart-5: #94A3B8;
+  --color-chart-other: #CBD5E1;
+
+  /* Radii */
+  --radius-input: 12px;
+  --radius-card: 20px;
+  --radius-panel: 28px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-card: 0 1px 2px rgba(11, 31, 58, 0.04), 0 14px 34px -14px rgba(11, 31, 58, 0.14);
+  --shadow-glow: 0 10px 28px -8px rgba(10, 139, 255, 0.55);
 }
 
 :root {
   font-family: var(--font-sans);
-  color: #e8eef0;
-  background: #0b1116;
+  color: var(--color-body);
+  background-color: var(--color-app);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -28,10 +69,20 @@ body,
 #root {
   min-height: 100%;
   margin: 0;
+  padding: 0;
+  background-color: var(--color-app);
+  color: var(--color-body);
 }
 
 body {
   min-width: 320px;
+}
+
+/* Base interactive focus */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(10, 139, 255, 0.28);
+  border-color: var(--color-brand-500) !important;
 }
 
 button,
@@ -43,4 +94,22 @@ select {
 
 button {
   cursor: pointer;
+}
+
+/* Glass Utility Classes */
+.glass-surface {
+  background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.brand-gradient {
+  background: linear-gradient(135deg, #1AB0FF 0%, #0A8BFF 100%);
+}
+
+.brand-gradient-text {
+  background: linear-gradient(135deg, #1AB0FF 0%, #0A8BFF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }

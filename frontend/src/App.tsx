@@ -1,150 +1,85 @@
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+} from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { ConnectionsProvider } from './context/ConnectionsContext';
 
-import { useEffect, useState } from 'react';
+// Layouts & Guards
+import { ProtectedRoute } from './components/layout/ProtectedRoute';
+import { AppShell } from './components/layout/AppShell';
+
+// Pages
+import LandingPage from './pages/landing/LandingPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import ConnectionDashboard from './pages/ConnectionDashboard';
-import {
-  getCurrentUser,
-  loginUser,
-  registerUser,
-} from './services/authApi';
+import OverviewPage from './pages/app/OverviewPage';
+import ConnectPage from './pages/app/ConnectPage';
+import ConnectAwsPage from './pages/app/ConnectAwsPage';
+import AccountsPage from './pages/app/AccountsPage';
+import Ec2Page from './pages/app/Ec2Page';
+import EbsPage from './pages/app/EbsPage';
+import CostPage from './pages/app/CostPage';
+import InsightsPage from './pages/app/InsightsPage';
+import HistoryPage from './pages/app/HistoryPage';
+import SettingsPage from './pages/app/SettingsPage';
+import NotFoundPage from './pages/NotFoundPage';
+import Styleguide from './pages/dev/Styleguide';
 
-type Page = 'login' | 'register' | 'dashboard';
+// Protected App Layout wrapper with AppShell
+function ProtectedAppLayout() {
+  return (
+    <AppShell>
+      <Outlet />
+    </AppShell>
+  );
+}
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<Page>('login');
-  const [userName, setUserName] = useState('');
-  const [token, setToken] = useState<string | null>(null);
-
-  const [isCheckingSession, setIsCheckingSession] = useState(
-    () => Boolean(sessionStorage.getItem('cloudwise_token')),
-  );
-
-  useEffect(() => {
-    const savedToken = sessionStorage.getItem('cloudwise_token');
-
-    if (!savedToken) {
-      return;
-    }
-
-    getCurrentUser(savedToken)
-      .then((user) => {
-        setToken(savedToken);
-        setUserName(
-          sessionStorage.getItem('cloudwise_user_name') ||
-            user.email.split('@')[0],
-        );
-        setCurrentPage('dashboard');
-      })
-      .catch(() => {
-        sessionStorage.removeItem('cloudwise_token');
-        sessionStorage.removeItem('cloudwise_user_name');
-        setToken(null);
-        setUserName('');
-        setCurrentPage('login');
-      })
-      .finally(() => {
-        setIsCheckingSession(false);
-      });
-  }, []);
-
-  if (isCheckingSession) {
-    return (
-      <div className="min-h-screen bg-[#0b1116] flex items-center justify-center text-white">
-        Checking session...
-      </div>
-    );
-  }
-
-  async function handleRegisterSuccess(account: {
-    name: string;
-    email: string;
-    password: string;
-  }): Promise<string | null> {
-    try {
-      await registerUser({
-        name: account.name.trim(),
-        email: account.email.trim().toLowerCase(),
-        password: account.password,
-      });
-
-      setCurrentPage('login');
-      return null;
-    } catch (error) {
-      return error instanceof Error
-        ? error.message
-        : 'Registration failed. Please try again.';
-    }
-  }
-
-  async function handleLogin(
-    email: string,
-    password: string,
-  ): Promise<string | null> {
-    try {
-      const response = await loginUser(
-        email.trim().toLowerCase(),
-        password,
-      );
-
-      await getCurrentUser(response.token);
-
-      sessionStorage.setItem('cloudwise_token', response.token);
-      sessionStorage.setItem('cloudwise_user_name', response.name);
-
-      setToken(response.token);
-      setUserName(response.name);
-      setCurrentPage('dashboard');
-
-      return null;
-    } catch (error) {
-      return error instanceof Error
-        ? error.message
-        : 'Login failed. Please try again.';
-    }
-  }
-
-  function handleLogout() {
-    sessionStorage.removeItem('cloudwise_token');
-    sessionStorage.removeItem('cloudwise_user_name');
-
-    setToken(null);
-    setUserName('');
-    setCurrentPage('login');
-  }
-
-  if (currentPage === 'login') {
-    return (
-      <Login
-        onRegister={() => setCurrentPage('register')}
-        onLogin={handleLogin}
-      />
-    );
-  }
-
-  if (currentPage === 'register') {
-    return (
-      <Register
-        onLogin={() => setCurrentPage('login')}
-        onRegisterSuccess={handleRegisterSuccess}
-      />
-    );
-  }
-
-  if (!token) {
-    return (
-      <Login
-        onRegister={() => setCurrentPage('register')}
-        onLogin={handleLogin}
-      />
-    );
-  }
-
   return (
-    <ConnectionDashboard
-      userName={userName || 'User'}
-      token={token}
-      onLogout={handleLogout}
-    />
+    <AuthProvider>
+      <ConnectionsProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Public Landing Route */}
+            <Route path="/" element={<LandingPage />} />
+
+            {/* Unauthenticated Only Routes (redirect to /app/overview if already authenticated) */}
+            <Route element={<ProtectedRoute redirectIfAuthenticated />}>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+            </Route>
+
+            {/* Protected App Routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/app" element={<ProtectedAppLayout />}>
+                <Route index element={<Navigate to="/app/overview" replace />} />
+                <Route path="overview" element={<OverviewPage />} />
+                <Route path="connect" element={<ConnectPage />} />
+                <Route path="connect/aws" element={<ConnectAwsPage />} />
+                <Route path="accounts" element={<AccountsPage />} />
+                <Route path="resources/ec2" element={<Ec2Page />} />
+                <Route path="resources/ebs" element={<EbsPage />} />
+                <Route path="cost" element={<CostPage />} />
+                <Route path="insights" element={<InsightsPage />} />
+                <Route path="history" element={<HistoryPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+              </Route>
+            </Route>
+
+            {/* Development Only Styleguide (Excluded from production) */}
+            {import.meta.env.DEV && (
+              <Route path="/__styleguide" element={<Styleguide />} />
+            )}
+
+            {/* Catch-all 404 Route */}
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </BrowserRouter>
+      </ConnectionsProvider>
+    </AuthProvider>
   );
 }
