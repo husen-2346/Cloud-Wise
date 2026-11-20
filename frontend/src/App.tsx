@@ -14,8 +14,8 @@ import { AppShell } from './components/layout/AppShell';
 
 // Pages
 import LandingPage from './pages/landing/LandingPage';
-import Login from './pages/Login';
-import Register from './pages/Register';
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
 import OverviewPage from './pages/app/OverviewPage';
 import ConnectPage from './pages/app/ConnectPage';
 import ConnectAwsPage from './pages/app/ConnectAwsPage';
@@ -49,8 +49,8 @@ export default function App() {
 
             {/* Unauthenticated Only Routes (redirect to /app/overview if already authenticated) */}
             <Route element={<ProtectedRoute redirectIfAuthenticated />}>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
             </Route>
 
             {/* Protected App Routes */}
