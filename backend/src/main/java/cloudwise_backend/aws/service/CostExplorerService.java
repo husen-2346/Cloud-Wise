@@ -28,77 +28,87 @@ import software.amazon.awssdk.services.costexplorer.model.ResultByTime;
 @Service
 public class CostExplorerService {
 
-    private final CustomerAwsCredentialsService credentialsService;
+        private final CustomerAwsCredentialsService credentialsService;
 
-    public CostExplorerService(
-            CustomerAwsCredentialsService credentialsService) {
-        this.credentialsService = credentialsService;
-    }
-
-    public List<CostExplorerResponse> getServiceCosts(
-            Long connectionId,
-            String userEmail,
-            LocalDate startDate,
-            LocalDate endDate) {
-
-        if (startDate == null || endDate == null
-                || !startDate.isBefore(endDate)) {
-            throw new IllegalArgumentException(
-                    "Start date must be before end date");
+        public CostExplorerService(
+                        CustomerAwsCredentialsService credentialsService) {
+                this.credentialsService = credentialsService;
         }
 
-        AwsCredentialsProvider credentials =
-                credentialsService.getCredentials(connectionId, userEmail);
+        public List<CostExplorerResponse> getServiceCosts(
+                        Long connectionId,
+                        String userEmail,
+                        LocalDate startDate,
+                        LocalDate endDate) {
 
-        try (CostExplorerClient client = CostExplorerClient.builder()
-                .region(Region.US_EAST_1)
-                .credentialsProvider(credentials)
-                .build()) {
-
-            GetCostAndUsageRequest request =
-                    GetCostAndUsageRequest.builder()
-                            .timePeriod(DateInterval.builder()
-                                    .start(startDate.toString())
-                                    .end(endDate.toString())
-                                    .build())
-                            .granularity(Granularity.DAILY)
-                            .metrics(Metric.UNBLENDED_COST.toString())
-                            .groupBy(GroupDefinition.builder()
-                                    .type(GroupDefinitionType.DIMENSION)
-                                    .key(Dimension.SERVICE.toString())
-                                    .build())
-                            .build();
-
-            GetCostAndUsageResponse response =
-                    client.getCostAndUsage(request);
-
-            List<CostExplorerResponse> results = new ArrayList<>();
-
-            for (ResultByTime period : response.resultsByTime()) {
-
-                LocalDate date = LocalDate.parse(period.timePeriod().start());
-
-                for (Group group : period.groups()) {
-
-                    String service = group.keys().isEmpty()
-                            ? "Unknown"
-                            : group.keys().get(0);
-
-                    var metric = group.metrics().get(
-                            Metric.UNBLENDED_COST.toString());
-
-                    if (metric != null) {
-                        results.add(new CostExplorerResponse(
-                                date,
-                                service,
-                                new BigDecimal(metric.amount()),
-                                metric.unit()
-                        ));
-                    }
+                if (startDate == null || endDate == null
+                                || !startDate.isBefore(endDate)) {
+                        throw new IllegalArgumentException(
+                                        "Start date must be before end date");
                 }
-            }
 
-            return results;
+                AwsCredentialsProvider credentials = credentialsService.getCredentials(connectionId, userEmail);
+
+                try (CostExplorerClient client = CostExplorerClient.builder()
+                                .region(Region.US_EAST_1)
+                                .credentialsProvider(credentials)
+                                .build()) {
+
+                        GetCostAndUsageRequest request = GetCostAndUsageRequest.builder()
+                                        .timePeriod(DateInterval.builder()
+                                                        .start(startDate.toString())
+                                                        .end(endDate.toString())
+                                                        .build())
+                                        .granularity(Granularity.DAILY)
+                                        .metrics(Metric.UNBLENDED_COST.toString())
+                                        .groupBy(GroupDefinition.builder()
+                                                        .type(GroupDefinitionType.DIMENSION)
+                                                        .key(Dimension.SERVICE.toString())
+                                                        .build())
+                                        .build();
+
+                        List<CostExplorerResponse> results = new ArrayList<>();
+
+                        String nextPageToken = null;
+
+                        do {
+                                GetCostAndUsageRequest pageRequest = nextPageToken == null
+                                                ? request
+                                                : request.toBuilder()
+                                                                .nextPageToken(nextPageToken)
+                                                                .build();
+
+                                GetCostAndUsageResponse response = client.getCostAndUsage(pageRequest);
+
+                                for (ResultByTime period : response.resultsByTime()) {
+
+                                        LocalDate date = LocalDate.parse(
+                                                        period.timePeriod().start());
+
+                                        for (Group group : period.groups()) {
+
+                                                String service = group.keys().isEmpty()
+                                                                ? "Unknown"
+                                                                : group.keys().get(0);
+
+                                                var metric = group.metrics().get(
+                                                                Metric.UNBLENDED_COST.toString());
+
+                                                if (metric != null) {
+                                                        results.add(new CostExplorerResponse(
+                                                                        date,
+                                                                        service,
+                                                                        new BigDecimal(metric.amount()),
+                                                                        metric.unit()));
+                                                }
+                                        }
+                                }
+
+                                nextPageToken = response.nextPageToken();
+
+                        } while (nextPageToken != null && !nextPageToken.isBlank());
+
+                        return results;
+                }
         }
-    }
 }
