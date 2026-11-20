@@ -1,78 +1,99 @@
-import { PageHeader } from '../../components/layout/PageHeader';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
-import { Link } from 'react-router-dom';
-import { Cloud, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 export default function ConnectPage() {
+  const navigate = useNavigate();
+
   const providers = [
     {
       id: 'aws',
       name: 'Amazon Web Services',
-      description: 'Connect via cross-account IAM Role ARN and external ID.',
+      logo: '/logos/aws.png',
+      description:
+        'Connect your AWS account using a secure, read-only cross-account IAM Role and External ID.',
       status: 'available' as const,
-      link: '/app/connect/aws',
+      statusLabel: 'Available',
+      enabled: true,
+      action: () => navigate('/app/connect/aws'),
     },
     {
       id: 'azure',
       name: 'Microsoft Azure',
-      description: 'Connect via Azure Service Principal.',
+      logo: '/logos/azure.png',
+      description: 'Coming soon. Stay tuned for Azure integration.',
       status: 'coming-soon' as const,
-      link: null,
+      statusLabel: 'Coming soon',
+      enabled: false,
+      action: () => {},
     },
     {
       id: 'gcp',
-      name: 'Google Cloud Platform',
-      description: 'Connect via Google Cloud Workload Identity.',
+      name: 'Google Cloud',
+      logo: '/logos/gcp.png',
+      description: 'Coming soon. Stay tuned for Google Cloud integration.',
       status: 'coming-soon' as const,
-      link: null,
+      statusLabel: 'Coming soon',
+      enabled: false,
+      action: () => {},
     },
   ];
 
   return (
-    <div>
-      <PageHeader
-        title="Connect Cloud Account"
-        subtitle="Select a cloud provider to grant read-only optimization access to your infrastructure."
-      />
+    <div className="max-w-5xl mx-auto space-y-8">
+      {/* Header */}
+      <div>
+        <p className="text-xs uppercase tracking-[0.14em] text-muted font-semibold mb-1">
+          GET STARTED
+        </p>
+        <h1 className="font-serif text-3xl sm:text-4xl font-normal text-ink tracking-tight">
+          Connect your cloud
+        </h1>
+        <p className="text-body text-sm sm:text-base mt-2 max-w-2xl leading-relaxed">
+          Choose your cloud provider to bring your infrastructure, usage, and cost data into CloudWise.
+        </p>
+      </div>
 
+      {/* Provider Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {providers.map((p) => (
-          <Card key={p.id} className="flex flex-col justify-between">
+          <Card
+            key={p.id}
+            className="flex flex-col justify-between hover:shadow-card transition-all duration-200"
+          >
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 rounded-full bg-tint flex items-center justify-center text-brand-500">
-                  <Cloud size={20} />
+              <div className="flex items-center justify-between mb-5">
+                <div className="w-12 h-12 rounded-xl bg-app border border-line flex items-center justify-center p-2.5">
+                  <img
+                    src={p.logo}
+                    alt={p.name}
+                    className="max-h-full max-w-full object-contain"
+                  />
                 </div>
-                <Badge variant={p.status}>
-                  {p.status === 'available' ? 'Available' : 'Coming Soon'}
-                </Badge>
+                <Badge variant={p.status}>{p.statusLabel}</Badge>
               </div>
 
-              <h2 className="text-base font-semibold text-ink mb-1.5">{p.name}</h2>
-              <p className="text-sm text-muted leading-relaxed mb-6">
+              <h2 className="text-base font-semibold text-ink mb-2">
+                {p.name}
+              </h2>
+              <p className="text-sm text-body leading-relaxed mb-6">
                 {p.description}
               </p>
             </div>
 
-            <div>
-              {p.link ? (
-                <Link to={p.link} className="block">
-                  <Button
-                    variant="primary"
-                    size="md"
-                    className="w-full"
-                    rightIcon={<ArrowRight size={16} />}
-                  >
-                    Configure AWS
-                  </Button>
-                </Link>
-              ) : (
-                <Button variant="secondary" size="md" disabled className="w-full">
-                  Unavailable
-                </Button>
-              )}
+            <div className="pt-4 border-t border-line">
+              <Button
+                variant={p.enabled ? 'primary' : 'secondary'}
+                size="md"
+                disabled={!p.enabled}
+                onClick={p.action}
+                className="w-full"
+                rightIcon={p.enabled ? <ArrowRight size={16} /> : undefined}
+              >
+                Connect
+              </Button>
             </div>
           </Card>
         ))}

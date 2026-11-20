@@ -146,12 +146,7 @@ export function ConnectionsProvider({ children }: { children: ReactNode }) {
       setConnections((prev) => {
         const updated = prev.map((item) => {
           if (item.connectionId === connectionId) {
-            const next = { ...item, ...updates, savedLocally: true };
-            // Clear externalId if status becomes CONNECTED
-            if (updates.status === 'CONNECTED') {
-              delete next.externalId;
-            }
-            return next;
+            return { ...item, ...updates, savedLocally: true };
           }
           return item;
         });
@@ -165,11 +160,7 @@ export function ConnectionsProvider({ children }: { children: ReactNode }) {
 
       setActiveConnection((prev) => {
         if (prev?.connectionId === connectionId) {
-          const next = { ...prev, ...updates, savedLocally: true };
-          if (updates.status === 'CONNECTED') {
-            delete next.externalId;
-          }
-          return next;
+          return { ...prev, ...updates, savedLocally: true };
         }
         return prev;
       });
