@@ -27,7 +27,6 @@ import InsightsPage from './pages/app/InsightsPage';
 import HistoryPage from './pages/app/HistoryPage';
 import SettingsPage from './pages/app/SettingsPage';
 import NotFoundPage from './pages/NotFoundPage';
-import Styleguide from './pages/dev/Styleguide';
 
 // Protected App Layout wrapper with AppShell
 function ProtectedAppLayout() {
@@ -69,11 +68,6 @@ export default function App() {
                 <Route path="settings" element={<SettingsPage />} />
               </Route>
             </Route>
-
-            {/* Development Only Styleguide (Excluded from production) */}
-            {import.meta.env.DEV && (
-              <Route path="/__styleguide" element={<Styleguide />} />
-            )}
 
             {/* Catch-all 404 Route */}
             <Route path="*" element={<NotFoundPage />} />

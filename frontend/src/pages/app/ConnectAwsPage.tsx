@@ -253,7 +253,7 @@ export default function ConnectAwsPage() {
         <p className="text-xs uppercase tracking-[0.14em] text-muted font-semibold mb-1">
           AWS CONNECTION WIZARD
         </p>
-        <h1 className="font-serif text-3xl sm:text-4xl font-normal text-ink tracking-tight">
+        <h1 className="font-sans text-[28px] sm:text-[32px] font-semibold text-ink leading-tight tracking-tight">
           Connect your AWS account
         </h1>
         <p className="text-body text-sm sm:text-base mt-2 max-w-2xl leading-relaxed">

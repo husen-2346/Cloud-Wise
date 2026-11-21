@@ -148,7 +148,7 @@ export default function AccountsPage() {
           <p className="text-xs uppercase tracking-[0.14em] text-muted font-semibold mb-1">
             INFRASTRUCTURE
           </p>
-          <h1 className="font-serif text-3xl font-normal text-ink tracking-tight">
+          <h1 className="font-sans text-[28px] font-semibold text-ink leading-tight tracking-tight">
             Cloud Accounts
           </h1>
           <p className="text-body text-sm mt-1">

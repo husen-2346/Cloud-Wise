@@ -326,7 +326,7 @@ export default function OverviewPage() {
       {/* PageHeader with Account Switcher, Timestamp, and Refresh Button */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-2 border-b border-line">
         <div>
-          <h1 className="font-serif text-3xl font-normal text-ink tracking-tight">
+          <h1 className="font-sans text-[28px] font-semibold text-ink leading-tight tracking-tight">
             Overview
           </h1>
           <p className="text-body text-sm mt-1">
