@@ -113,3 +113,45 @@ button {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+/* Auth Pages Responsive Rules */
+.auth-input-height {
+  height: 48px;
+}
+
+.auth-btn-height {
+  height: 48px !important;
+}
+
+@media (max-height: 800px) {
+  .auth-input-height {
+    height: 44px !important;
+  }
+  .auth-btn-height {
+    height: 44px !important;
+  }
+  .auth-subtitle {
+    margin-top: 0px !important;
+    margin-bottom: 0px !important;
+  }
+  .auth-divider {
+    margin-top: 8px !important;
+    margin-bottom: 8px !important;
+  }
+  .auth-footer {
+    font-size: 13px !important;
+    margin-top: 10px !important;
+  }
+}
+
+@media (min-width: 1024px) and (max-height: 600px) {
+  .auth-root-container {
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow-y: auto !important;
+  }
+  .auth-right-container {
+    min-height: 100vh !important;
+    height: auto !important;
+  }
+}

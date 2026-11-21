@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useConnections, type ConnectionMetadata } from '../../context/ConnectionsContext';
@@ -6,6 +6,7 @@ import {
   initiateConnection,
   verifyConnection,
   syncResources,
+  fetchAwsPlatformConfig,
   type ResourceSyncResult,
 } from '../../services/awsApi';
 import { Card } from '../../components/ui/Card';
@@ -64,9 +65,58 @@ export default function ConnectAwsPage() {
   const [isInitiating, setIsInitiating] = useState(false);
   const [initiateError, setInitiateError] = useState<string | null>(null);
 
-  // Step 2 state
-  const trustPrincipalArn = import.meta.env.VITE_CLOUDWISE_TRUST_PRINCIPAL_ARN || '';
+  // Step 2 state - fetched from backend
+  const [trustPrincipalArn, setTrustPrincipalArn] = useState<string>('');
+  const [isLoadingConfig, setIsLoadingConfig] = useState<boolean>(true);
+  const [configError, setConfigError] = useState<string | null>(null);
   const [copiedPolicy, setCopiedPolicy] = useState(false);
+
+  useEffect(() => {
+    let isCancelled = false;
+    if (!token) return;
+
+    fetchAwsPlatformConfig(token)
+      .then((config) => {
+        if (!isCancelled) {
+          setTrustPrincipalArn(config.trustPrincipalArn || '');
+          setIsLoadingConfig(false);
+        }
+      })
+      .catch((err) => {
+        if (!isCancelled) {
+          setConfigError(
+            err instanceof Error
+              ? err.message
+              : 'Failed to retrieve CloudWise trust principal ARN from backend.',
+          );
+          setIsLoadingConfig(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [token]);
+
+  const handleRetryConfig = () => {
+    if (!token) return;
+    setIsLoadingConfig(true);
+    setConfigError(null);
+    fetchAwsPlatformConfig(token)
+      .then((config) => {
+        setTrustPrincipalArn(config.trustPrincipalArn || '');
+      })
+      .catch((err) => {
+        setConfigError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to retrieve CloudWise trust principal ARN from backend.',
+        );
+      })
+      .finally(() => {
+        setIsLoadingConfig(false);
+      });
+  };
 
   // Step 3 Verification state
   const [isVerifying, setIsVerifying] = useState(false);
@@ -366,154 +416,172 @@ export default function ConnectAwsPage() {
                   </p>
                 </div>
 
-                {/* Configuration Warning if VITE_CLOUDWISE_TRUST_PRINCIPAL_ARN is not set */}
-                {!trustPrincipalArn ? (
-                  <div className="mb-6">
-                    <Alert variant="warning" title="Trust Principal Not Configured">
-                      The developer must configure{' '}
-                      <code className="font-mono font-semibold text-warning">
-                        VITE_CLOUDWISE_TRUST_PRINCIPAL_ARN
-                      </code>{' '}
-                      in <code className="font-mono">frontend/.env</code>. Without this
-                      variable, the exact IAM trust policy cannot be rendered.
+                {/* Loading state while retrieving backend platform configuration */}
+                {isLoadingConfig ? (
+                  <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
+                    <Spinner size="md" />
+                    <p className="text-sm text-muted">
+                      Retrieving CloudWise AWS trust principal configuration...
+                    </p>
+                  </div>
+                ) : configError ? (
+                  /* Error retrieving backend configuration */
+                  <div className="mb-6 space-y-4">
+                    <Alert variant="error" title="Configuration Retrieval Failed">
+                      {configError}
                     </Alert>
-                  </div>
-                ) : null}
-
-                {/* Numbered Setup Instructions */}
-                <div className="space-y-4 mb-6">
-                  <h3 className="text-sm font-semibold text-ink">
-                    Instructions:
-                  </h3>
-                  <ol className="list-decimal list-inside space-y-2.5 text-sm text-body leading-relaxed pl-1">
-                    <li>
-                      Open the{' '}
-                      <a
-                        href="https://console.aws.amazon.com/iamv2/home#/roles"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-brand-600 font-medium hover:underline inline-flex items-center gap-1"
-                      >
-                        AWS IAM Console <ExternalLink size={13} />
-                      </a>
-                      .
-                    </li>
-                    <li>Navigate to <strong>IAM → Roles → Create role</strong>.</li>
-                    <li>Select <strong>AWS account</strong> as the trusted entity.</li>
-                    <li>
-                      Under "An AWS account", select <strong>Another AWS account</strong> and enter the CloudWise principal ARN:
-                      <div className="mt-1.5 pl-4">
-                        {trustPrincipalArn ? (
-                          <code className="font-mono text-xs px-2.5 py-1 bg-app border border-line rounded-md text-ink select-all">
-                            {trustPrincipalArn}
-                          </code>
-                        ) : (
-                          <span className="text-xs text-danger font-medium">
-                            (Principal ARN not configured in environment)
-                          </span>
-                        )}
-                      </div>
-                    </li>
-                    <li>
-                      Under "Options", check <strong>Require external ID</strong> and enter the value below.
-                    </li>
-                    <li>
-                      Set the role name to exactly: <code className="font-mono font-semibold text-ink">CloudWiseCustomerRole</code>.
-                    </li>
-                    <li>Attach the required read-only policies.</li>
-                  </ol>
-                </div>
-
-                {/* Generated External ID CopyField (amber tinted) */}
-                <div className="mb-5 p-4 rounded-xl bg-warning-bg/40 border border-warning/30">
-                  <CopyField
-                    label="CloudWise External ID (Required for trust condition)"
-                    value={selectedConnection.externalId || 'External ID unavailable'}
-                    helperText="This unique ID prevents Confused Deputy attacks. Paste this into your AWS IAM role configuration."
-                  />
-                </div>
-
-                {/* Role Name CopyField */}
-                <div className="mb-5">
-                  <CopyField
-                    label="Role Name"
-                    value="CloudWiseCustomerRole"
-                    helperText="The role name must match exactly."
-                  />
-                </div>
-
-                {/* Trust Policy JSON */}
-                {trustPrincipalArn && generatedTrustPolicy ? (
-                  <div className="mb-6">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-sm font-medium text-ink">
-                        Trust Policy Document (JSON)
-                      </label>
-                      <button
+                    <div className="flex items-center gap-3">
+                      <Button
                         type="button"
-                        onClick={handleCopyTrustPolicy}
-                        className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-500 transition-colors"
+                        variant="secondary"
+                        size="md"
+                        onClick={handleRetryConfig}
+                        leftIcon={<RefreshCw size={14} />}
                       >
-                        {copiedPolicy ? (
-                          <>
-                            <Check size={14} className="text-success" />
-                            <span className="text-success">Copied JSON</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy size={14} />
-                            <span>Copy Policy</span>
-                          </>
-                        )}
-                      </button>
+                        Retry
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="md"
+                        onClick={() => setCurrentStep(0)}
+                      >
+                        Back to details
+                      </Button>
                     </div>
-                    <pre className="p-4 rounded-xl bg-app border border-line text-xs font-mono text-ink overflow-x-auto select-all max-h-60">
-                      {generatedTrustPolicy}
-                    </pre>
                   </div>
-                ) : null}
+                ) : (
+                  <>
+                    {/* Numbered Setup Instructions */}
+                    <div className="space-y-4 mb-6">
+                      <h3 className="text-sm font-semibold text-ink">
+                        Instructions:
+                      </h3>
+                      <ol className="list-decimal list-inside space-y-2.5 text-sm text-body leading-relaxed pl-1">
+                        <li>
+                          Open the{' '}
+                          <a
+                            href="https://console.aws.amazon.com/iamv2/home#/roles"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-brand-600 font-medium hover:underline inline-flex items-center gap-1"
+                          >
+                            AWS IAM Console <ExternalLink size={13} />
+                          </a>
+                          .
+                        </li>
+                        <li>Navigate to <strong>IAM → Roles → Create role</strong>.</li>
+                        <li>Select <strong>AWS account</strong> as the trusted entity.</li>
+                        <li>
+                          Under "An AWS account", select <strong>Another AWS account</strong> and enter the CloudWise principal ARN:
+                          <div className="mt-1.5 pl-4">
+                            <code className="font-mono text-xs px-2.5 py-1 bg-app border border-line rounded-md text-ink select-all">
+                              {trustPrincipalArn}
+                            </code>
+                          </div>
+                        </li>
+                        <li>
+                          Under "Options", check <strong>Require external ID</strong> and enter the value below.
+                        </li>
+                        <li>
+                          Set the role name to exactly: <code className="font-mono font-semibold text-ink">CloudWiseCustomerRole</code>.
+                        </li>
+                        <li>Attach the required read-only policies.</li>
+                      </ol>
+                    </div>
 
-                {/* Permissions Guidance */}
-                <div className="mb-8 p-4 rounded-xl bg-tint/60 border border-brand-300/40 text-xs sm:text-sm text-body space-y-2">
-                  <div className="flex items-center gap-2 font-semibold text-ink">
-                    <Shield size={16} className="text-brand-600" />
-                    <span>Suggested Read-Only Permissions Guidance</span>
-                  </div>
-                  <p className="leading-relaxed">
-                    CloudWise requires read-only permissions to inspect compute and cost telemetry. Minimum suggested actions:
-                  </p>
-                  <ul className="list-disc list-inside space-y-1 font-mono text-xs text-ink pl-2">
-                    <li>ec2:DescribeInstances</li>
-                    <li>ec2:DescribeVolumes</li>
-                    <li>cloudwatch:GetMetricStatistics</li>
-                    <li>ce:GetCostAndUsage</li>
-                  </ul>
-                  <p className="text-xs text-muted leading-relaxed">
-                    Alternatively, attaching the AWS-managed <code className="font-mono text-ink">ReadOnlyAccess</code> policy works. Please review the permissions attached to your role according to your organization's security policy.
-                  </p>
-                </div>
+                    {/* Generated External ID CopyField (amber tinted) */}
+                    <div className="mb-5 p-4 rounded-xl bg-warning-bg/40 border border-warning/30">
+                      <CopyField
+                        label="CloudWise External ID (Required for trust condition)"
+                        value={selectedConnection.externalId || 'External ID unavailable'}
+                        helperText="This unique ID prevents Confused Deputy attacks. Paste this into your AWS IAM role configuration."
+                      />
+                    </div>
 
-                {/* Navigation Buttons */}
-                <div className="pt-4 border-t border-line flex items-center justify-between">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="md"
-                    onClick={() => setCurrentStep(0)}
-                    leftIcon={<ArrowLeft size={16} />}
-                  >
-                    Back
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="lg"
-                    onClick={handleStartVerification}
-                    rightIcon={<ArrowRight size={18} />}
-                  >
-                    Verify connection
-                  </Button>
-                </div>
+                    {/* Role Name CopyField */}
+                    <div className="mb-5">
+                      <CopyField
+                        label="Role Name"
+                        value="CloudWiseCustomerRole"
+                        helperText="The role name must match exactly."
+                      />
+                    </div>
+
+                    {/* Trust Policy JSON */}
+                    {trustPrincipalArn && generatedTrustPolicy ? (
+                      <div className="mb-6">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-sm font-medium text-ink">
+                            Trust Policy Document (JSON)
+                          </label>
+                          <button
+                            type="button"
+                            onClick={handleCopyTrustPolicy}
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-500 transition-colors"
+                          >
+                            {copiedPolicy ? (
+                              <>
+                                <Check size={14} className="text-success" />
+                                <span className="text-success">Copied JSON</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy size={14} />
+                                <span>Copy Policy</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                        <pre className="p-4 rounded-xl bg-app border border-line text-xs font-mono text-ink overflow-x-auto select-all max-h-60">
+                          {generatedTrustPolicy}
+                        </pre>
+                      </div>
+                    ) : null}
+
+                    {/* Permissions Guidance */}
+                    <div className="mb-8 p-4 rounded-xl bg-tint/60 border border-brand-300/40 text-xs sm:text-sm text-body space-y-2">
+                      <div className="flex items-center gap-2 font-semibold text-ink">
+                        <Shield size={16} className="text-brand-600" />
+                        <span>Suggested Read-Only Permissions Guidance</span>
+                      </div>
+                      <p className="leading-relaxed">
+                        CloudWise requires read-only permissions to inspect compute and cost telemetry. Minimum suggested actions:
+                      </p>
+                      <ul className="list-disc list-inside space-y-1 font-mono text-xs text-ink pl-2">
+                        <li>ec2:DescribeInstances</li>
+                        <li>ec2:DescribeVolumes</li>
+                        <li>cloudwatch:GetMetricStatistics</li>
+                        <li>ce:GetCostAndUsage</li>
+                      </ul>
+                      <p className="text-xs text-muted leading-relaxed">
+                        Alternatively, attaching the AWS-managed <code className="font-mono text-ink">ReadOnlyAccess</code> policy works. Please review the permissions attached to your role according to your organization's security policy.
+                      </p>
+                    </div>
+
+                    {/* Navigation Buttons */}
+                    <div className="pt-4 border-t border-line flex items-center justify-between">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="md"
+                        onClick={() => setCurrentStep(0)}
+                        leftIcon={<ArrowLeft size={16} />}
+                      >
+                        Back
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="primary"
+                        size="lg"
+                        onClick={handleStartVerification}
+                        rightIcon={<ArrowRight size={18} />}
+                      >
+                        Verify connection
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 

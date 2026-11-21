@@ -4,6 +4,20 @@ export interface CustomerAwsConnectionRequest {
   roleArn: string;
 }
 
+export interface AwsPlatformConfigResponse {
+  trustPrincipalArn: string;
+}
+
+/**
+ * Fetch CloudWise platform AWS configuration including the trust principal ARN.
+ */
+export async function fetchAwsPlatformConfig(
+  token: string,
+): Promise<AwsPlatformConfigResponse> {
+  const response = await authenticatedFetch('/api/aws/config', token);
+  return handleApiResponse<AwsPlatformConfigResponse>(response);
+}
+
 export interface CustomerAwsConnectionInitiationResponse {
   connectionId: number;
   accountId?: string | null;
@@ -131,14 +145,27 @@ export async function initiateConnection(
 /**
  * Step 3 of AWS wizard: verify connection while in PENDING status.
  */
+
 export async function verifyConnection(
   token: string,
   connectionId: number,
 ): Promise<CustomerAwsConnectionResponse> {
-  const response = await authenticatedFetch(
+  const response = await fetch(
     `/api/aws/connections/${connectionId}/verify`,
-    token,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
   );
+
+  if (response.status === 401) {
+    sessionStorage.removeItem('cloudwise_token');
+    sessionStorage.removeItem('cloudwise_user_name');
+    window.location.reload();
+    throw new Error('Your session has expired. Please log in again.');
+  }
 
   return handleApiResponse<CustomerAwsConnectionResponse>(response);
 }

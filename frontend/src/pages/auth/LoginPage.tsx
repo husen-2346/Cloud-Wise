@@ -116,22 +116,23 @@ export default function LoginPage() {
     >
       <div className="w-full">
         {/* Header Section */}
-        <div className="mb-5">
+        <div className="mb-[clamp(12px,2vh,20px)] max-h-800:mb-2.5">
           <p className="text-xs uppercase tracking-[0.14em] text-muted font-semibold mb-1">
             WELCOME BACK
           </p>
-          <h1 className="font-serif text-2xl sm:text-3xl font-normal text-ink tracking-[-0.03em]">
+          <h1 className="font-serif text-[clamp(28px,4.4vh,40px)] font-normal text-ink tracking-[-0.03em] leading-tight">
             Sign in to CloudWise
           </h1>
-          <p className="text-xs sm:text-sm text-muted mt-1 leading-relaxed">
+          <p className="text-sm text-muted mt-1 max-h-800:mt-0 leading-normal auth-subtitle">
             Continue to your cloud optimization dashboard.
           </p>
         </div>
 
-        {/* Success Alert (e.g. from Registration) */}
+        {/* Success Alert (e.g. from Registration) - compact single line */}
         {successMessage && (
-          <div className="mb-4">
+          <div className="mb-2">
             <Alert
+              compact
               variant="success"
               onClose={() => setSuccessMessage(null)}
             >
@@ -140,10 +141,11 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Informational Alert (e.g. Forgot Password) */}
+        {/* Informational Alert (e.g. Forgot Password) - compact single line */}
         {infoMessage && (
-          <div className="mb-4">
+          <div className="mb-2">
             <Alert
+              compact
               variant="info"
               onClose={() => setInfoMessage(null)}
             >
@@ -152,10 +154,11 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Backend / Server Error Alert */}
+        {/* Backend / Server Error Alert - compact single line */}
         {serverError && (
-          <div className="mb-4">
+          <div className="mb-2">
             <Alert
+              compact
               variant="error"
               onClose={() => setServerError(null)}
             >
@@ -164,21 +167,8 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Google Sign-in Button */}
-        <GoogleSignInButton />
-
-        {/* Divider */}
-        <div className="relative flex items-center justify-center my-4">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-line" />
-          </div>
-          <div className="relative bg-surface px-3 text-xs uppercase tracking-[0.14em] text-muted font-medium">
-            or
-          </div>
-        </div>
-
         {/* Login Form */}
-        <form onSubmit={handleSubmit} className="space-y-3.5" noValidate>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-[clamp(10px,1.8vh,18px)]" noValidate>
           <Input
             label="Email"
             id="email"
@@ -192,10 +182,11 @@ export default function LoginPage() {
             disabled={isSubmitting}
             required
             leftIcon={<Mail size={18} />}
+            containerClassName="auth-input-height"
           />
 
           <div>
-            <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center justify-between mb-1">
               <label
                 htmlFor="password"
                 className="block text-sm font-medium text-ink"
@@ -222,24 +213,37 @@ export default function LoginPage() {
               disabled={isSubmitting}
               required
               leftIcon={<Lock size={18} />}
+              containerClassName="auth-input-height"
             />
           </div>
 
           <Button
             type="submit"
             variant="primary"
-            size="lg"
             isLoading={isSubmitting}
             disabled={isSubmitting}
             rightIcon={<ArrowRight size={18} />}
-            className="w-full mt-2 font-medium"
+            className="w-full font-medium auth-btn-height !h-[48px]"
           >
             Sign in
           </Button>
         </form>
 
+        {/* Divider */}
+        <div className="relative flex items-center justify-center my-[clamp(8px,1.5vh,16px)] auth-divider">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-line" />
+          </div>
+          <div className="relative bg-surface px-3 text-xs uppercase tracking-[0.14em] text-muted font-medium">
+            or
+          </div>
+        </div>
+
+        {/* Google Sign-in Button */}
+        <GoogleSignInButton />
+
         {/* Footer */}
-        <p className="mt-5 text-center text-xs sm:text-sm text-muted">
+        <p className="mt-[clamp(10px,1.8vh,18px)] text-center text-sm auth-footer text-muted">
           Don't have an account?{' '}
           <Link
             to="/register"

@@ -1,3 +1,5 @@
+import { Badge } from '../../../components/ui/Badge';
+
 export function GoogleSignInButton() {
   return (
     <button
@@ -5,7 +7,7 @@ export function GoogleSignInButton() {
       disabled
       aria-disabled="true"
       title="Google sign-in is not available yet"
-      className="w-full h-[46px] rounded-full border border-line bg-surface text-sm font-medium text-muted/80 flex items-center justify-center gap-3 opacity-60 cursor-not-allowed select-none transition-all shadow-[0_1px_2px_rgba(11,31,58,0.03)]"
+      className="w-full h-[48px] auth-btn-height rounded-full border border-line bg-surface text-sm font-medium text-muted/90 flex items-center justify-center gap-2.5 opacity-60 cursor-not-allowed select-none transition-all shadow-[0_1px_2px_rgba(11,31,58,0.03)]"
     >
       <svg
         className="w-4 h-4 shrink-0"
@@ -30,6 +32,9 @@ export function GoogleSignInButton() {
         />
       </svg>
       <span>Continue with Google</span>
+      <Badge variant="coming-soon" className="text-[10px] py-0 px-2 h-5 leading-none">
+        Coming soon
+      </Badge>
     </button>
   );
 }

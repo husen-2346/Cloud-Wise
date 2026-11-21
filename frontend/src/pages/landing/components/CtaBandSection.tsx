@@ -23,7 +23,7 @@ export function CtaBandSection() {
       <div className="relative rounded-[28px] overflow-hidden shadow-card border border-white/80 p-8 sm:p-14 text-center">
         {/* Background Image with Fallback Gradient */}
         <picture className="absolute inset-0 w-full h-full pointer-events-none select-none">
-          <source srcSet="/images/cta-band.webp" type="image/webp" />
+          <source srcSet="/images/cta-band.png" />
           <img
             src="/images/cta-band.png"
             alt=""

@@ -41,28 +41,27 @@ export function PasswordStrength({ password }: PasswordStrengthProps) {
   };
 
   return (
-    <div className="mt-2" aria-live="polite">
-      <div className="flex items-center gap-1.5 h-1.5 w-full">
-        <div
-          className={`h-full flex-1 rounded-full transition-colors duration-200 ${
-            activeBars >= 1 ? colorStyles[strength].split(' ')[0] : 'bg-line'
-          }`}
-        />
-        <div
-          className={`h-full flex-1 rounded-full transition-colors duration-200 ${
-            activeBars >= 2 ? colorStyles[strength].split(' ')[0] : 'bg-line'
-          }`}
-        />
-        <div
-          className={`h-full flex-1 rounded-full transition-colors duration-200 ${
-            activeBars >= 3 ? colorStyles[strength].split(' ')[0] : 'bg-line'
-          }`}
-        />
-      </div>
-
-      <div className="flex items-center justify-between mt-1 text-[11px]">
-        <span className="text-muted">Password strength:</span>
-        <span className={`font-medium ${colorStyles[strength].split(' ')[1]}`}>
+    <div className="flex items-center justify-between text-xs mt-1 min-h-[16px]" aria-live="polite">
+      <span className="text-muted text-[12px]">At least 8 characters</span>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1 w-14 h-1">
+          <div
+            className={`h-full flex-1 rounded-full transition-colors duration-200 ${
+              activeBars >= 1 ? colorStyles[strength].split(' ')[0] : 'bg-line'
+            }`}
+          />
+          <div
+            className={`h-full flex-1 rounded-full transition-colors duration-200 ${
+              activeBars >= 2 ? colorStyles[strength].split(' ')[0] : 'bg-line'
+            }`}
+          />
+          <div
+            className={`h-full flex-1 rounded-full transition-colors duration-200 ${
+              activeBars >= 3 ? colorStyles[strength].split(' ')[0] : 'bg-line'
+            }`}
+          />
+        </div>
+        <span className={`text-[11px] font-medium leading-none ${colorStyles[strength].split(' ')[1]}`}>
           {label}
         </span>
       </div>

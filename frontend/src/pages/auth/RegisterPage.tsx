@@ -137,22 +137,23 @@ export default function RegisterPage() {
     >
       <div className="w-full">
         {/* Header Section */}
-        <div className="mb-4">
+        <div className="mb-[clamp(10px,1.8vh,18px)] max-h-800:mb-2">
           <p className="text-xs uppercase tracking-[0.14em] text-muted font-semibold mb-1">
             GET STARTED
           </p>
-          <h1 className="font-serif text-2xl sm:text-3xl font-normal text-ink tracking-[-0.03em]">
+          <h1 className="font-serif text-[clamp(28px,4.4vh,40px)] font-normal text-ink tracking-[-0.03em] leading-tight">
             Create your account
           </h1>
-          <p className="text-xs sm:text-sm text-muted mt-1 leading-relaxed">
+          <p className="text-sm text-muted mt-1 max-h-800:mt-0 leading-normal auth-subtitle">
             Start optimizing your cloud costs in minutes.
           </p>
         </div>
 
-        {/* Backend / Server Error Alert */}
+        {/* Backend / Server Error Alert - compact single line */}
         {serverError && (
-          <div className="mb-4">
+          <div className="mb-2">
             <Alert
+              compact
               variant="error"
               onClose={() => setServerError(null)}
             >
@@ -161,21 +162,8 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* Google Sign-in Button */}
-        <GoogleSignInButton />
-
-        {/* Divider */}
-        <div className="relative flex items-center justify-center my-3.5">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-line" />
-          </div>
-          <div className="relative bg-surface px-3 text-xs uppercase tracking-[0.14em] text-muted font-medium">
-            or
-          </div>
-        </div>
-
         {/* Registration Form */}
-        <form onSubmit={handleSubmit} className="space-y-3" noValidate>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-[clamp(10px,1.8vh,18px)]" noValidate>
           <Input
             label="Full name"
             id="fullName"
@@ -190,6 +178,7 @@ export default function RegisterPage() {
             disabled={isSubmitting}
             required
             leftIcon={<User size={18} />}
+            containerClassName="auth-input-height"
           />
 
           <Input
@@ -205,6 +194,7 @@ export default function RegisterPage() {
             disabled={isSubmitting}
             required
             leftIcon={<Mail size={18} />}
+            containerClassName="auth-input-height"
           />
 
           <div>
@@ -217,32 +207,53 @@ export default function RegisterPage() {
               placeholder="Enter your password"
               value={password}
               onChange={handlePasswordChange}
-              error={errors.password}
-              helperText={!errors.password ? 'At least 8 characters' : undefined}
               disabled={isSubmitting}
               required
               minLength={8}
               maxLength={72}
               leftIcon={<Lock size={18} />}
+              containerClassName="auth-input-height"
             />
-            <PasswordStrength password={password} />
+            {errors.password ? (
+              <p role="alert" className="mt-1 text-xs text-danger">
+                {errors.password}
+              </p>
+            ) : password ? (
+              <PasswordStrength password={password} />
+            ) : (
+              <p className="mt-1 text-xs text-muted">
+                At least 8 characters
+              </p>
+            )}
           </div>
 
           <Button
             type="submit"
             variant="primary"
-            size="lg"
             isLoading={isSubmitting}
             disabled={isSubmitting}
             rightIcon={<ArrowRight size={18} />}
-            className="w-full mt-2 font-medium"
+            className="w-full font-medium auth-btn-height !h-[48px]"
           >
             Create account
           </Button>
         </form>
 
+        {/* Divider */}
+        <div className="relative flex items-center justify-center my-[clamp(8px,1.5vh,16px)] auth-divider">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-line" />
+          </div>
+          <div className="relative bg-surface px-3 text-xs uppercase tracking-[0.14em] text-muted font-medium">
+            or
+          </div>
+        </div>
+
+        {/* Google Sign-in Button */}
+        <GoogleSignInButton />
+
         {/* Footer */}
-        <p className="mt-4 text-center text-xs sm:text-sm text-muted">
+        <p className="mt-[clamp(10px,1.8vh,18px)] text-center text-sm auth-footer text-muted">
           Already have an account?{' '}
           <Link
             to="/login"

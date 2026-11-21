@@ -1,6 +1,7 @@
 
 package cloudwise_backend.ai;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -8,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
@@ -24,20 +26,113 @@ public class GeminiService {
     private final RestClient restClient;
 
     public GeminiService(
-            @Value("${openrouter.api-key}") String apiKey) {
+            @Value("${openrouter.api-key:}") String configuredApiKey) {
 
-        this.apiKey = apiKey;
+        this.apiKey = resolveApiKey(configuredApiKey);
+
+        if (this.apiKey.isBlank()) {
+            throw new IllegalStateException(
+                    "OpenRouter API key is missing. Check OPENROUTER_API_KEY_NEW or OPENROUTER_API_KEY."
+            );
+        }
+
+        log.info("OpenRouter API key loaded: true");
+        log.info("OpenRouter API key length: {}", this.apiKey.length());
+        log.info(
+                "OpenRouter API key format valid: {}",
+                this.apiKey.startsWith("sk-or-v1-")
+        );
+
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = md.digest(this.apiKey.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hash) {
+                sb.append(String.format("%02X", b));
+            }
+            String fingerprint = sb.substring(0, 12);
+            log.info("OpenRouter API key fingerprint: {}", fingerprint);
+            log.info("Matches PowerShell fingerprint 206919D7E864: {}", "206919D7E864".equals(fingerprint));
+        } catch (Exception e) {
+            log.warn("Could not calculate fingerprint", e);
+        }
+
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofSeconds(30));
+        requestFactory.setReadTimeout(Duration.ofSeconds(120));
 
         this.restClient = RestClient.builder()
+                .requestFactory(requestFactory)
                 .baseUrl("https://openrouter.ai/api/v1")
+                .defaultHeader(
+                        "Accept",
+                        MediaType.APPLICATION_JSON_VALUE
+                )
+                .defaultHeader(
+                        "Content-Type",
+                        MediaType.APPLICATION_JSON_VALUE
+                )
                 .build();
+    }
+
+    private static String resolveApiKey(String configuredKey) {
+        // 1. Direct process environment variable OPENROUTER_API_KEY_NEW
+        String envNew = System.getenv("OPENROUTER_API_KEY_NEW");
+        if (envNew != null && !envNew.isBlank()) {
+            return envNew.trim();
+        }
+
+        // 2. On Windows, read User registry if shell process environment is stale
+        String regKey = getWindowsUserEnv("OPENROUTER_API_KEY_NEW");
+        if (regKey != null && !regKey.isBlank()) {
+            return regKey;
+        }
+
+        // 3. Configured property from application.properties
+        if (configuredKey != null && !configuredKey.isBlank()) {
+            return configuredKey.trim();
+        }
+
+        // 4. Fallback to OPENROUTER_API_KEY from environment
+        String envOld = System.getenv("OPENROUTER_API_KEY");
+        if (envOld != null && !envOld.isBlank()) {
+            return envOld.trim();
+        }
+
+        return "";
+    }
+
+    private static String getWindowsUserEnv(String varName) {
+        if (!System.getProperty("os.name", "").toLowerCase().contains("win")) {
+            return null;
+        }
+        try {
+            Process process = new ProcessBuilder("reg", "query", "HKCU\\Environment", "/v", varName)
+                    .redirectErrorStream(true)
+                    .start();
+            try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.contains(varName)) {
+                        String[] parts = line.trim().split("\\s+");
+                        if (parts.length >= 3) {
+                            return parts[2].trim();
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 
     public String explain(String context) {
 
         if (context == null || context.isBlank()) {
             throw new IllegalArgumentException(
-                    "Analysis context cannot be empty.");
+                    "Analysis context cannot be empty."
+            );
         }
 
         String systemPrompt = """
@@ -124,64 +219,86 @@ public class GeminiService {
         );
 
         try {
+
+            log.info("Sending AI explanation request to OpenRouter.");
+            log.info("OpenRouter model: openrouter/free");
+            log.info("API key has surrounding whitespace: {}",
+                    !apiKey.equals(apiKey.trim()));
+
             JsonNode response = restClient.post()
                     .uri("/chat/completions")
-                    .header("Authorization", "Bearer " + apiKey)
+                    .header(
+                            "Authorization",
+                            "Bearer " + apiKey
+                    )
                     .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
                     .body(requestBody)
                     .retrieve()
                     .body(JsonNode.class);
 
             if (response == null) {
                 throw new IllegalStateException(
-                        "OpenRouter returned an empty response.");
+                        "OpenRouter returned an empty response."
+                );
             }
 
             if (response.has("error")) {
                 log.error("OpenRouter returned an error response.");
+
                 throw new IllegalStateException(
-                        "OpenRouter could not generate the explanation.");
+                        "OpenRouter could not generate the explanation."
+                );
             }
 
             JsonNode choices = response.path("choices");
 
             if (!choices.isArray() || choices.isEmpty()) {
                 log.error(
-                        "OpenRouter response contains no choices. Finish reason: {}",
-                        response.path("error").asString("not provided")
+                        "OpenRouter response contains no choices."
                 );
+
                 throw new IllegalStateException(
-                        "OpenRouter returned no generated choices.");
+                        "OpenRouter returned no generated choices."
+                );
             }
 
             JsonNode choice = choices.path(0);
             JsonNode message = choice.path("message");
             JsonNode content = message.path("content");
 
-            if (!content.isString() || content.asString("").isBlank()) {
+            if (!content.isString()
+                    || content.asString("").isBlank()) {
+
                 log.error(
                         "OpenRouter returned no text content. Finish reason: {}",
                         choice.path("finish_reason").asString("unknown")
                 );
+
                 throw new IllegalStateException(
-                        "OpenRouter returned no explanation text.");
+                        "OpenRouter returned no explanation text."
+                );
             }
 
             String explanation = content.asString("").trim();
 
             if (explanation.length() < 100) {
                 log.warn(
-                        "OpenRouter returned an unusually short explanation ({} characters).",
+                        "OpenRouter returned an unusually short explanation: {} characters.",
                         explanation.length()
                 );
             }
 
+            log.info("AI explanation generated successfully.");
+
             return explanation;
 
         } catch (RestClientResponseException ex) {
+
             log.error(
-                    "OpenRouter request failed. HTTP status: {}",
-                    ex.getStatusCode().value()
+                    "OpenRouter request failed. HTTP status: {}. Response: {}",
+                    ex.getStatusCode().value(),
+                    ex.getResponseBodyAsString()
             );
 
             throw new IllegalStateException(

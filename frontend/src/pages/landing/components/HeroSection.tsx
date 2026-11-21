@@ -19,13 +19,13 @@ export function HeroSection() {
     <section
       id="hero"
       aria-label="CloudWise Introduction"
-      className="relative min-h-[100svh] w-full flex flex-col justify-center items-center overflow-hidden bg-app"
+      className="relative min-h-screen min-h-[100svh] w-full flex flex-col justify-center items-center overflow-hidden bg-app"
     >
       {/* Background with responsive artwork matching visual reference */}
       <picture className="absolute inset-0 w-full h-full pointer-events-none select-none">
-        <source media="(max-width: 640px)" srcSet="/images/hero-mobile.webp" />
+        <source media="(max-width: 640px)" srcSet="/images/hero-mobile.png" />
         <img
-          src="/images/hero-bg.webp"
+          src="/images/hero-bg.png"
           alt=""
           className="w-full h-full object-cover object-top opacity-95"
         />

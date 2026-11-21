@@ -11,6 +11,7 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   helperText?: string;
   leftIcon?: ReactNode;
+  containerClassName?: string;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
@@ -20,6 +21,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       error,
       helperText,
       leftIcon,
+      containerClassName = '',
       type = 'text',
       id,
       className = '',
@@ -38,14 +40,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-sm font-medium text-ink mb-1.5"
+            className="block text-sm font-medium text-ink mb-1"
           >
             {label}
           </label>
         )}
 
         <div
-          className={`flex items-center h-[48px] rounded-[12px] bg-surface border transition-all duration-150 px-3.5 ${
+          className={`flex items-center h-[48px] rounded-[12px] bg-surface border transition-all duration-150 px-3.5 ${containerClassName} ${
             error
               ? 'border-danger focus-within:ring-2 focus-within:ring-danger/25'
               : 'border-line focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/25'

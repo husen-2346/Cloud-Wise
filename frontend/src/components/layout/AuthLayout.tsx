@@ -16,14 +16,14 @@ export function AuthLayout({
   const [imageError, setImageError] = useState(false);
 
   return (
-    <main className="min-h-screen bg-app flex flex-col md:flex-row items-stretch justify-center relative overflow-x-hidden">
+    <main className="min-h-screen flex flex-col lg:h-dvh lg:flex-row lg:overflow-hidden bg-app relative overflow-x-hidden auth-root-container">
       {/* Left Image Panel (52% on desktop, 160px banner on mobile) */}
-      <div className="relative w-full md:w-[52%] shrink-0 h-[160px] md:h-auto overflow-hidden bg-gradient-to-br from-[#BFE3FF] via-[#EAF5FF] to-[#F4F8FD]">
+      <div className="relative w-full lg:w-[52%] xl:w-[54%] shrink-0 h-[160px] lg:h-full overflow-hidden bg-gradient-to-br from-[#BFE3FF] via-[#EAF5FF] to-[#F4F8FD]">
         {!imageError && (
           <picture className="w-full h-full">
-            <source srcSet="/images/auth-panel.webp" type="image/webp" />
+            <source srcSet="/images/auth-panel.png" />
             <img
-              src="/auth-panel.png"
+              src="/images/auth-panel.png"
               alt=""
               aria-hidden="true"
               onError={() => setImageError(true)}
@@ -33,7 +33,7 @@ export function AuthLayout({
         )}
 
         {/* Readability Veil & Hero Copy on Desktop */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent hidden md:flex flex-col justify-end p-8 lg:p-12 text-white">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-transparent hidden lg:flex flex-col justify-end p-8 lg:p-12 text-white">
           <div className="max-w-md">
             <h2 className="font-serif text-2xl lg:text-3xl xl:text-4xl font-normal tracking-[-0.03em] leading-tight text-white mb-2">
               {headline}
@@ -46,12 +46,12 @@ export function AuthLayout({
       </div>
 
       {/* Right White Form Panel (Overlapping on Desktop with 28px rounded edge) */}
-      <div className="flex-1 flex flex-col justify-center items-center px-6 py-8 md:px-10 lg:px-12 bg-surface md:-ml-7 md:rounded-l-[28px] z-10 shadow-[-10px_0_30px_rgba(11,31,58,0.06)] min-h-[calc(100vh-160px)] md:min-h-screen overflow-y-auto">
-        <div className="w-full max-w-[400px] my-auto py-2">
-          {/* Logo */}
-          <div className="mb-5">
-            <Link to="/" className="inline-block" aria-label="Go to homepage">
-              <Logo size="md" />
+      <div className="w-full lg:w-[48%] xl:w-[46%] flex flex-col justify-center items-center px-6 sm:px-8 lg:px-12 py-[clamp(16px,4vh,48px)] bg-surface lg:-ml-7 lg:rounded-l-[28px] z-10 shadow-[-10px_0_30px_rgba(11,31,58,0.06)] flex-1 lg:flex-none lg:h-full auth-right-container">
+        <div className="w-full max-w-[440px] flex flex-col justify-center">
+          {/* Logo 28px high with responsive margin bottom */}
+          <div className="mb-[clamp(12px,2.5vh,28px)]">
+            <Link to="/" className="inline-flex items-center h-7" aria-label="Go to homepage">
+              <Logo size="sm" className="h-7 [&_svg]:w-7 [&_svg]:h-7 [&_span]:text-xl" />
             </Link>
           </div>
 
